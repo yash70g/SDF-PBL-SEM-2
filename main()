@@ -256,50 +256,85 @@ void buyStock() {
     int quantity;
     string accountName;
 
-    cout << "Enter stock name: ";
-    cin >> name;
-    cout << "Enter st5ock price: ";
-    cin >> price;
-    cout << "Enter quantity: ";
-    cin >> quantity;
-    cout << "Enter account name: ";
-    cin >> accountName;
+    try {
+        cout << "Enter stock name: ";
+        cin >> name;
+        if (name.empty()) {
+            throw runtime_error("Stock name cannot be empty.");
+        }
 
-    double totalCost = price * quantity;
-    double balance = user.getBalance(accountName);
+        cout << "Enter stock price: ";
+        cin >> price;
+        if (price <= 0) {
+            throw runtime_error("Stock price must be positive.");
+        }
 
-    if (balance < totalCost) {
-        cout << "Insufficient balance in account." << endl;
-        return;
+        cout << "Enter quantity: ";
+        cin >> quantity;
+        if (quantity <= 0) {
+            throw runtime_error("Stock quantity must be positive.");
+        }
+
+        cout << "Enter account name: ";
+        cin >> accountName;
+        if (accountName.empty()) {
+            throw runtime_error("Account name cannot be empty.");
+        }
+
+        double totalCost = price * quantity;
+        double balance = user.getBalance(accountName);
+
+        if (balance < totalCost) {
+            throw runtime_error("Insufficient balance in account.");
+        }
+
+        Stock newStock(name, price, quantity);
+        portfolio.push_back(newStock);
+        user.updateBalance(accountName, -totalCost);
+
+        cout << "Stock purchased successfully!" << endl;
+    } catch (const runtime_error& e) {
+        cout << RED << "Error: " << e.what() << RESET << endl;
     }
-
-    Stock newStock(name, price, quantity);
-    portfolio.push_back(newStock);
-    user.updateBalance(accountName, -totalCost);
-
-    cout << "Stock purchased successfully!" << endl;
 }
 
 // Function to sell a stock
 void sellStock() {
     string name;
-    cout << "Enter stock name to sell: ";
-    cin >> name;
     string accountName;
-    cout << "Enter account name: ";
-    cin >> accountName;
-    int n=portfolio.size();
-    for (int i = 0; i < n; i++) {
-        if (portfolio[i].getName() == name) {
-            double proceeds = portfolio[i].getPrice() * portfolio[i].getQuantity();
-            user.updateBalance(accountName, proceeds);
-            cout << "You sold " << portfolio[i].getQuantity() << " shares of " << portfolio[i].getName() << " at $" << portfolio[i].getPrice() << " each. Total proceeds: $" << proceeds << endl;
-            portfolio.erase(portfolio.begin() + i);
-            return;
-        }
-    }
 
-    cout << "Stock not found in portfolio." << endl;
+    try {
+        cout << "Enter stock name to sell: ";
+        cin >> name;
+        if (name.empty()) {
+            throw runtime_error("Stock name cannot be empty.");
+        }
+
+        cout << "Enter account name: ";
+        cin >> accountName;
+        if (accountName.empty()) {
+            throw runtime_error("Account name cannot be empty.");
+        }
+
+        int n = portfolio.size();
+        bool stockFound = false;
+        for (int i = 0; i < n; i++) {
+            if (portfolio[i].getName() == name) {
+                double proceeds = portfolio[i].getPrice() * portfolio[i].getQuantity();
+                user.updateBalance(accountName, proceeds);
+                cout << "You sold " << portfolio[i].getQuantity() << " shares of " << portfolio[i].getName() << " at $" << portfolio[i].getPrice() << " each. Total proceeds: $" << proceeds << endl;
+                portfolio.erase(portfolio.begin() + i);
+                stockFound = true;
+                break;
+            }
+        }
+
+        if (!stockFound) {
+            throw runtime_error("Stock not found in portfolio.");
+        }
+    } catch (const runtime_error& e) {
+        cout << RED << "Error: " << e.what() << RESET << endl;
+    }
 }
 
 // Function to view the user's portfolio
@@ -339,7 +374,7 @@ void adminMenu(Stock *defaultStocks) {
                 string name;
                 double price;
                 int quantity;
-                cout << "Enter admin password: ";
+                cout << BLUE<<"Enter admin password: "<<RESET;
                 cin >> password;
                 if (admin.checkPassword(password)) {
                     cout << "Enter stock name: ";
@@ -349,8 +384,9 @@ void adminMenu(Stock *defaultStocks) {
                     cout << "Enter quantity: ";
                     cin >> quantity;
                     addStock(admin, name, price, quantity);
-                } else {
-
+                } else 
+                {
+                    cout << RED<<"Access denied. Incorrect password."<<RESET << endl;
                 }
                 break;
             }
@@ -530,8 +566,17 @@ void showSort() {
 
 
 
-int main() {
-    createDefaultStocks(); // Create default Stock objects
+int main() 
+{
+    try
+    {
+        createDefaultStocks(); // Create default Stock objects
+    } 
+    catch (const bad_alloc& e) 
+    {
+        cout << RED << "Error: " << e.what() << RESET << endl;
+        return 1;
+    }
 
     //CREATING 5 DEFAULT ACCOUNTS
     user.addAccount("Divyam", 5000.0);
@@ -580,14 +625,18 @@ int main() {
                         showAvailableStocks(); // Display the sorted stocks
                         try {
                         restart:
-                            cout << "ENTER 1 TO DIPLAY SORTING ALGORITHM\n";
+                            cout << "ENTER 1 TO DIPLAY SORTING ALGORITHM or 2 TO SKIP\n";
                             cin >> choice;
                             if (choice == 1) {
                                 showSort();
                                 sortStocksByPrice();
                                 break;
                             }
-                            else if (x > 5)
+                            else if (choice==2)
+                            {
+                                sortStocksByPrice();
+                            }
+                            else if(x > 5)
                                 throw runtime_error("TOO MANY ATTEMPTS PLEASE RESTART THE CODE\n");
                             ++x;
                             goto restart;
