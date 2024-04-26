@@ -1,0 +1,623 @@
+#include <iostream>
+#include <vector>
+#include <algorithm>
+#include <string>
+#include <unordered_map>
+#include <stdexcept>
+
+// This program is a stock trading simulation application that allows users to buy and sell stocks, view their portfolio, and manage accounts.
+// The program also includes an admin menu for administrative tasks such as adding and deleting stocks, refreshing stock prices, and changing the admin password.
+// The program uses various C++ classes and data structures to model the application's entities and functionality.
+
+using namespace std;
+
+// Define ANSI escape codes for colored text output
+#define RESET   "\033[0m"
+#define BLACK   "\033[30m"      /* Black */
+#define RED     "\033[31m"      /* Red */
+#define GREEN   "\033[32m"      /* Green */
+#define YELLOW  "\033[33m"      /* Yellow */
+#define BLUE    "\033[34m"      /* Blue */
+#define MAGENTA "\033[35m"      /* Magenta */
+#define CYAN    "\033[36m"      /* Cyan */
+#define WHITE   "\033[37m"      /* White */
+
+// Stock class to represent a stock
+class Stock {
+    static int counter; // Static counter to keep track of the number of Stock objects created
+public:
+    // Constructor to initialize a Stock object with a name, price, and quantity
+    Stock(string name, double price, int quantity) {
+        this->name = name;
+        this->price = price;
+        this->quantity = quantity;
+        counter++;
+        // If more than 10 Stock objects are created, print a message
+        if(counter>10)
+        cout << "Stock " << name << " created." << endl;
+    }
+    // Default constructor
+    Stock()
+    {
+    }
+    // Destructor
+    ~Stock() 
+    {
+    }
+
+    // Getter methods to retrieve the name, price, and quantity of the Stock object
+    string getName() {
+        return name;
+    }
+
+    double getPrice() {
+        return price;
+    }
+
+    int getQuantity() {
+        return quantity;
+    }
+    // Method to randomize the prices of the default stocks
+    void randomizeStockPrices(Stock* defaultStocks) {
+    if (defaultStocks == nullptr) {
+        cout << "No stocks available." << endl;
+        return;
+    }
+    else {
+        cout<<MAGENTA<<"Enter Price Range of Stocks\n"<<RESET;
+        int max,min;
+        cin>>max>>min;
+        int range = max - min + 1;
+        for(int i=0;i<10;i++)
+        {
+            defaultStocks[i].price= rand() % range + min; 
+        }
+    }
+}
+private:
+    string name; // Name of the stock
+    double price; // Price of the stock
+    int quantity; // Quantity of the stock
+};
+int Stock::counter=0; // Initialize the static counter to 0
+
+// User class to represent a user
+class User { 
+    static int ac_id; // Static counter for account IDs
+protected:
+    vector<int> U_ids; // Vector to store account IDs
+    unordered_map<string, double> accounts; // Unordered map to store account names and balances
+public:
+static int id; // Static variable for user ID
+
+    // Method to add a new account
+    void addAccount(string name, double balance) 
+    {
+        accounts[name] = balance;
+        ac_id++;
+        U_ids.push_back(ac_id);
+        cout << CYAN<<"Account created successfully!" <<RESET<< endl;
+    }
+
+    // Method to get the balance of an account
+    double getBalance(string name) {
+        if (accounts.find(name) == accounts.end()) {
+            return 0;
+        }
+        return accounts[name];
+    }
+
+    // Method to update the balance of an account
+    void updateBalance(string name, double amount) {
+        if (accounts.find(name) == accounts.end()) {
+            cout << "Account not found." << endl;
+            return;
+        }
+        accounts[name] += amount;
+    }
+
+    // Method to view all accounts and their balances
+    void viewAccounts() {
+        if (accounts.empty()) {
+            cout << "No accounts found." << endl;
+            return;
+        }
+
+        cout << "Accounts:" << endl;
+        for ( auto& account : accounts) {
+            cout << CYAN<<"Name: " << account.first <<RESET<< GREEN<<", Balance: $" << account.second << RESET<<endl;
+        }
+    }
+
+};
+
+    int User::ac_id=0; // Initialize the static account ID counter to 0
+
+// Admin class derived from User class to represent an admin
+class Admin : public User {
+public:
+    // Constructor to initialize the admin with a password
+    Admin(string password) {
+        this->password = password;
+    }
+
+    // Method to check if the entered password matches the admin password
+    bool checkPassword(string enteredPassword) {
+        return enteredPassword == password;
+    }
+
+    // Method to change the admin password
+    void changePassword() 
+    {
+        string newPassword, confirmPassword;
+        cout << "Enter new password: ";
+        cin >> newPassword;
+        cout << "Confirm new password: ";
+        cin >> confirmPassword;
+        try{
+        if (newPassword == confirmPassword) {
+            password = newPassword;
+            cout << "Password changed successfully!" << endl;
+        }
+        else
+          {
+            throw "Passwords do not match. Password not changed." ;
+            }
+        }
+        catch (const char *s)
+        {   
+            cout<<RED<<s<<RESET;    
+        }
+    }
+    
+    // Friend functions to add and delete stocks
+    friend void addStock(Admin& admin, string name, double price, int quantity);
+    friend void deleteStock(Admin& admin, string name);
+
+    string password; // Admin password
+    vector<Stock> stocks; // Vector to store stocks
+};
+
+// Function to add a new stock
+void addStock(Admin& admin, string name, double price, int quantity) {
+    string pass;
+    cout<<YELLOW<<"ENTER ADMIN KEY\n"<<RESET;
+    cin>>pass;
+    if (!admin.checkPassword(pass)) {
+        cout << RED<<"Access denied. Incorrect password."<<RESET << endl;
+        return;
+    }
+    else{
+    Stock newStock(name, price, quantity);
+    admin.stocks.push_back(newStock);
+    cout << "Stock added successfully!" << endl;
+}}
+
+// Function to delete a stock
+void deleteStock(Admin& admin, string name) {
+    string pass;
+    cout<<BLUE<<"ENTER ADMIN KEY\n"<<RESET;
+    cin>>pass;
+    if (!admin.checkPassword(pass)) {
+        cout << RED<<"Access denied. Incorrect password."<<RESET << endl;
+        return;
+    }
+
+    for (auto it = admin.stocks.begin(); it != admin.stocks.end(); ++it) {
+        if (it->getName() == name) {
+            admin.stocks.erase(it);
+            cout << "Stock deleted successfully!" << endl;
+            return;
+        }
+    }
+    cout << "Stock not found." << endl;
+}
+
+// Function to view the available stocks
+void viewStocks(Admin& admin) {
+    if (admin.stocks.empty()) {
+        cout << "No stocks available." << endl;
+        return;
+    }
+
+    cout << "Available Stocks:" << endl;
+    for ( auto it : admin.stocks) {
+        cout << "Name: " << it.getName() << "\tPrice: $" << it.getPrice() <<endl;
+    }
+}
+
+User user; // Global User object
+Admin admin("admin123"); // Global Admin object with default password "admin123"
+vector<Stock> portfolio; // Global vector to store the user's portfolio
+
+// Function to display the main menu
+void displayMenu() {
+    cout << "\n\t\t\t\t" << GREEN << "=====================" << RESET << "\n";
+    cout << "\t\t\t\t" << YELLOW << "       COIN DX        " << RESET<< "\n";
+    cout << "\t\t\t\t" << GREEN << "=====================" << RESET << "\n\n";
+    cout << "\t\t\t\t" << CYAN << "    MAIN MENU" << RESET << "\n\n";
+    cout << "\t" << MAGENTA << "1. Add Account" << RESET << "\n";
+    cout << "\t" << MAGENTA << "2. Buy Stock" << RESET << "\n";
+    cout << "\t" << MAGENTA << "3. Sell Stock" << RESET << "\n";
+    cout << "\t" << MAGENTA << "4. View Portfolio" << RESET << "\n";
+    cout << "\t" << MAGENTA << "5. View Accounts" << RESET << "\n";
+    cout << "\t" << MAGENTA << "6. Admin Menu" << RESET << "\n";
+    cout << "\t" << MAGENTA << "7. Show Available Stocks" << RESET << "\n";
+    cout << "\t" << MAGENTA << "8. Filter Stocks by Price" << RESET << "\n";
+    cout << "\t" << MAGENTA << "9. Create Trial Account with 1000 initial balance" << RESET << "\n";
+    cout << "\t" << MAGENTA << "10. Exit" << RESET << "\n\n";
+    cout << "\t" << YELLOW << "Enter your choice: " << RESET;
+}
+
+// Function to buy a stock
+void buyStock() {
+    string name;
+    double price;
+    int quantity;
+    string accountName;
+
+    cout << "Enter stock name: ";
+    cin >> name;
+    cout << "Enter st5ock price: ";
+    cin >> price;
+    cout << "Enter quantity: ";
+    cin >> quantity;
+    cout << "Enter account name: ";
+    cin >> accountName;
+
+    double totalCost = price * quantity;
+    double balance = user.getBalance(accountName);
+
+    if (balance < totalCost) {
+        cout << "Insufficient balance in account." << endl;
+        return;
+    }
+
+    Stock newStock(name, price, quantity);
+    portfolio.push_back(newStock);
+    user.updateBalance(accountName, -totalCost);
+
+    cout << "Stock purchased successfully!" << endl;
+}
+
+// Function to sell a stock
+void sellStock() {
+    string name;
+    cout << "Enter stock name to sell: ";
+    cin >> name;
+    string accountName;
+    cout << "Enter account name: ";
+    cin >> accountName;
+    int n=portfolio.size();
+    for (int i = 0; i < n; i++) {
+        if (portfolio[i].getName() == name) {
+            double proceeds = portfolio[i].getPrice() * portfolio[i].getQuantity();
+            user.updateBalance(accountName, proceeds);
+            cout << "You sold " << portfolio[i].getQuantity() << " shares of " << portfolio[i].getName() << " at $" << portfolio[i].getPrice() << " each. Total proceeds: $" << proceeds << endl;
+            portfolio.erase(portfolio.begin() + i);
+            return;
+        }
+    }
+
+    cout << "Stock not found in portfolio." << endl;
+}
+
+// Function to view the user's portfolio
+void viewPortfolio() {
+    if (portfolio.empty()) {
+        cout << "Your portfolio is empty." << endl;
+        return;
+    }
+
+    cout << "Your Portfolio:" << endl;
+    for ( auto it: portfolio) {
+        cout << "Name: " << it.getName() << ", Price: $" << it.getPrice() << ", Quantity: " << it.getQuantity() << endl;
+    }
+}
+
+// Function to display the admin menu
+void adminMenu(Stock *defaultStocks) {
+    int choice;
+    string password;
+
+    do {
+        cout << "\n\t\t\t\t=====================\n";
+        cout << "\t\t\t\t       ADMIN MENU      \n";
+        cout << "\t\t\t\t=====================\n\n";
+        cout << "\t\t\t1. Add Stock\n";
+        cout << "\t\t\t2. Delete Stock\n";
+        cout << "\t\t\t3. View Stocks\n";
+        cout << "\t\t\t4. Refresh Stock Prices\n";
+        cout << "\t\t\t5. Change Password\n";
+        cout << "\t\t\t6. Back to Main Menu\n\n";
+        cout << "\tEnter your choice: ";
+      
+        cin >> choice;
+
+        switch (choice) {
+            case 1: {
+                string name;
+                double price;
+                int quantity;
+                cout << "Enter admin password: ";
+                cin >> password;
+                if (admin.checkPassword(password)) {
+                    cout << "Enter stock name: ";
+                    cin >> name;
+                    cout << "Enter stock price: ";
+                    cin >> price;
+                    cout << "Enter quantity: ";
+                    cin >> quantity;
+                    addStock(admin, name, price, quantity);
+                } else {
+
+                }
+                break;
+            }
+            case 2: {
+                string name;
+                cout << "Enter admin password: ";
+                cin >> password;
+                if (admin.checkPassword(password)) {
+                    cout << "Enter stock name to delete: ";
+                    cin >> name;
+                    deleteStock(admin, name);
+                } else {
+               cout << RED<<"Access denied. Incorrect password."<<RESET << endl;
+                }
+                break;
+            }
+            case 3: {
+                cout << "Enter admin password: ";
+                cin >> password;
+                if (admin.checkPassword(password)) {
+                    viewStocks(admin);
+                    if (defaultStocks == nullptr) {
+                    cout << "No stocks available." << endl;
+                        return;
+                    }
+                    for (int i = 0; i < 10; i++) {
+                        cout << "Name: " << defaultStocks[i].getName() << "\t Price: $" << defaultStocks[i].getPrice() << endl;
+                    }
+                } 
+                else {
+               cout << RED<<"Access denied. Incorrect password."<<RESET << endl;
+                }
+                break;
+            }
+            case 4:
+            cout<<BLUE<<"Enter Admin Key\n"<<RESET;
+            cin >> password;
+            if (admin.checkPassword(password)) 
+            {
+                defaultStocks[0].randomizeStockPrices(defaultStocks); 
+                cout << "Stock Prices Reefreshed\n" << endl;
+                }
+                break;
+            case 5: {
+                string password;
+                cout << "Enter current admin password: ";
+                cin >> password;
+                if (admin.checkPassword(password)) {
+                    admin.changePassword();
+                } 
+                else 
+                {
+                    cout <<RED<< "Access denied. Incorrect password." << RESET<<endl;
+                }
+                break;
+            }
+            case 6:
+                cout << "Returning to main menu..." << endl;
+                break;
+            default:
+                cout << RED<<"Invalid choice. Please try again." <<RESET<< endl;
+        }
+    } 
+    while (choice != 6);
+}
+
+Stock* defaultStocks = nullptr; // Pointer to store default Stock objects
+
+// Function to allocate memory for default Stock objects
+void createDefaultStocks() 
+{
+    defaultStocks = new Stock[10];
+    defaultStocks[0] = Stock("Apple", 120.50, 1000);
+    defaultStocks[1] = Stock("HP", 280.25, 2500);
+    defaultStocks[2] = Stock("Amazon", 3200.75, 500);
+    defaultStocks[3] = Stock("Tesla", 650.00, 1200);
+    defaultStocks[4] = Stock("Alphabet", 2250.50, 800);
+    defaultStocks[5] = Stock("Meta", 190.75, 1500);
+    defaultStocks[6] = Stock("NVIDIA", 225.00, 1000);
+    defaultStocks[7] = Stock("Visa", 210.00, 2000);
+    defaultStocks[8] = Stock("Dell", 345.50, 1500);
+    defaultStocks[9] = Stock("Jaypee", 130.25, 3000);
+}
+
+// Function to deallocate memory for default Stock objects
+void deleteDefaultStocks() {
+    delete[] defaultStocks;
+    defaultStocks = nullptr;
+}
+
+// Function to show the available stocks
+void showAvailableStocks() {
+    if (defaultStocks == nullptr) {
+        cout << "No stocks available." << endl;
+        return;
+    }
+
+    cout << "Available Stocks:" << endl;
+    for (int i = 0; i < 10; i++) {
+        cout << "Name: " << defaultStocks[i].getName() << "\t Price: $" << defaultStocks[i].getPrice() << endl;
+    }
+}
+
+// Function to compare stocks based on their prices for sorting
+bool compareStocksByPrice(Stock& a, Stock& b) {
+    return a.getPrice() < b.getPrice();
+}
+   
+// Function to sort the stocks by their prices
+void sortStocksByPrice() {
+    if (defaultStocks == nullptr) {
+        cout << GREEN<<"No stocks available." <<RESET<< endl;
+        return;
+    }
+    sort(defaultStocks, defaultStocks + 10, compareStocksByPrice);
+}
+
+const int n = 10; // Constant for the size of the array used in the sorting algorithm
+
+// Function to swap two double values
+void swap(double *a, double *b)
+{
+    double temp;
+    temp=*a;
+    *a=*b;
+    *b=temp;
+}
+
+// Function to display the sorting algorithm
+void showSort() {
+    double a[n];
+
+    cout << "\n\t\t\t\t=========================\n";
+    cout << CYAN<<"\t\t\t\t    SORTING ALGORITHM    \n"<<RESET;
+    cout << "\t\t\t\t=========================\n\n";
+
+    // Initialize values with random numbers
+    for (int i = 0; i < n; i++) {
+        a[i] = defaultStocks[i].getPrice();
+    }
+
+    // Print initial values
+    cout << "\t\tInitial values: ";
+    for (int i = 0; i < n; i++) {
+        cout << a[i] << ", ";
+    }
+    cout << "\n\n";
+
+    char count;
+
+    // Bubble Sort
+    for (int i = 0; i < n - 1; i++) {
+        for (int j = 0; j < n - i - 1; j++) {
+            if (a[j] > a[j + 1]) {
+                swap(&a[j], &a[j + 1]);
+                cout << "\t\tSwapping " << a[j] << " and " << a[j + 1] << ": ";
+                for (int k = 0; k < n; k++) {
+                    cout << a[k] << " ";
+                }
+                if (count == 0)
+                    cout << "\n\n\t\tEnter any character to display next swap: ";
+                else
+                    cout << "\n\t\tENTER: ";
+                cin >> count;
+                cout << "\n";
+            }
+        }
+    }
+
+    // Print sorted values
+    cout <<GREEN<< "\t\tSorted values: "<<RESET;
+    for (int i = 0; i < n; i++) {
+        cout << a[i] << ", ";
+    }
+    cout << "\n\n";
+}
+
+
+
+int main() {
+    createDefaultStocks(); // Create default Stock objects
+
+    //CREATING 5 DEFAULT ACCOUNTS
+    user.addAccount("Divyam", 5000.0);
+    user.addAccount("Divyanshi", 10000.0);
+    user.addAccount("Yash", 2500.0);
+    user.addAccount("Ananya", 7000.0);
+    user.addAccount("Abhay", 15000.0);
+
+    int choice;
+    do {
+        displayMenu(); // Display the main menu
+        try {
+            cin >> choice;
+            if (choice == 1 || choice == 2 || choice == 3 || choice == 4 || choice == 5 || choice == 6 || choice == 7 || choice == 8 || choice == 9 || choice == 10) {
+                switch (choice) {
+                    case 1: {
+                        string name;
+                        double balance;
+                        cout << BLUE << "Enter account name: " << RESET;
+                        cin >> name;
+                        cout << GREEN << "Enter initial balance: " << RESET;
+                        cin >> balance;
+                        user.addAccount(name, balance);
+                        break;
+                    }
+                    case 2:
+                        buyStock();
+                        break;
+                    case 3:
+                        sellStock();
+                        break;
+                    case 4:
+                        viewPortfolio();
+                        break;
+                    case 5:
+                        user.viewAccounts();
+                        break;
+                    case 6:
+                        adminMenu(defaultStocks);
+                        break;
+                    case 7:
+                        showAvailableStocks();
+                        break;
+                    case 8:
+                        int x;
+                        showAvailableStocks(); // Display the sorted stocks
+                        try {
+                        restart:
+                            cout << "ENTER 1 TO DIPLAY SORTING ALGORITHM\n";
+                            cin >> choice;
+                            if (choice == 1) {
+                                showSort();
+                                sortStocksByPrice();
+                                break;
+                            }
+                            else if (x > 5)
+                                throw runtime_error("TOO MANY ATTEMPTS PLEASE RESTART THE CODE\n");
+                            ++x;
+                            goto restart;
+                        }
+                        catch (runtime_error& e) {
+                            cout << RED << e.what() << RESET;
+                        }
+                        break;
+                    case 9:
+                        cout << "Trial account created\n";
+                        user.addAccount("TRIAL", 1000);
+                        break;
+    
+                    case 10:
+     // Deallocate memory for default Stock objects
+                        deleteDefaultStocks();
+                        cout << "Exiting program..." << endl;
+                        break;
+                    default:
+                        cout << "Invalid choice. Please try again." << endl;
+                        break;
+                }
+            }
+            else
+                throw runtime_error("INAPROPPIATE INPUT\n");
+        }
+        catch (runtime_error& er) {
+            cout << RED << er.what() << RESET;
+        }
+    } while (choice != 10);
+
+    return 0;
+}
